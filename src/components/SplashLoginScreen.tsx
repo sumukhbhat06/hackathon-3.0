@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useSpring, useMotionValue, animate } from 'mot
 interface SplashLoginScreenProps {
   view: 'login' | 'signup';
   setView: (v: 'login' | 'signup' | 'home' | 'results' | 'demo') => void;
-  setUser: (u: { username: string; phone: string }) => void;
+  setUser: (u: { email: string }) => void;
 }
 
 const TITLE = "NotesCraft".split('');
@@ -14,7 +14,7 @@ export function SplashLoginScreen({ view, setView, setUser }: SplashLoginScreenP
   const [progress, setProgress] = useState(0);
   const [showContent, setShowContent] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   // Smooth spring-driven progress
@@ -37,7 +37,7 @@ export function SplashLoginScreen({ view, setView, setUser }: SplashLoginScreenP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setUser({ username: username || 'Demo User', phone: '1234567890' });
+    setUser({ email: email || 'user@example.com' });
     setView('home');
   };
 
@@ -306,7 +306,7 @@ export function SplashLoginScreen({ view, setView, setUser }: SplashLoginScreenP
               {/* Form fields */}
               <form onSubmit={handleSubmit} className="space-y-3">
                 {[
-                  { label: 'Username', type: 'text', placeholder: 'e.g. john_doe', value: username, onChange: setUsername },
+                  { label: 'Email Address', type: 'email', placeholder: 'e.g. john@example.com', value: email, onChange: setEmail },
                   { label: 'Password', type: 'password', placeholder: '••••••••', value: password, onChange: setPassword },
                 ].map(field => (
                   <div key={field.label}>
@@ -331,24 +331,7 @@ export function SplashLoginScreen({ view, setView, setUser }: SplashLoginScreenP
                 ))}
 
                 <AnimatePresence>
-                  {view === 'signup' && (
-                    <motion.div
-                      key="phone"
-                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                      animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
-                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="overflow-hidden"
-                    >
-                      <label className="text-[11px] uppercase tracking-wider mb-1 block" style={{ color: 'rgba(255,255,255,0.35)' }}>Phone</label>
-                      <input
-                        type="tel"
-                        placeholder="+1 555 000 0000"
-                        className="w-full rounded-lg px-4 py-2.5 text-sm text-white outline-none"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                      />
-                    </motion.div>
-                  )}
+                  {/* Phone field removed requested by user */}
                 </AnimatePresence>
 
                 <motion.button

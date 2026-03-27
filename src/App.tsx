@@ -16,7 +16,8 @@ import {
   Send,
   ExternalLink,
   CheckCircle2,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import confetti from 'canvas-confetti';
@@ -34,12 +35,16 @@ const Mermaid = ({ chart }: { chart: string }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (ref.current && chart) {
+    if (ref.current) {
+      if (!chart) {
+        setError("Flowchart data is currently unavailable. Try generating materials again.");
+        return;
+      }
+      
       const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
       setError(null);
       
       try {
-        // First check if syntax is valid
         mermaid.parse(chart).then((valid) => {
           if (valid) {
             mermaid.render(id, chart).then((result) => {
@@ -48,34 +53,44 @@ const Mermaid = ({ chart }: { chart: string }) => {
               }
             }).catch((err) => {
               console.error("Mermaid render error:", err);
-              setError("Failed to render flowchart. The AI generated invalid syntax.");
+              setError("Failed to render flowchart. The AI produced invalid Mermaid syntax.");
             });
           } else {
-            setError("Invalid flowchart syntax.");
+            setError("The AI generated invalid flowchart syntax.");
           }
         }).catch((err) => {
           console.error("Mermaid parse error:", err);
-          setError("Flowchart syntax error.");
+          setError("Flowchart syntax error: The model's visualization was malformed.");
         });
       } catch (err) {
         console.error("Mermaid catch error:", err);
-        setError("Flowchart error.");
+        setError("An unexpected error occurred while rendering the concept map.");
       }
     }
   }, [chart]);
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center p-6 text-center bg-red-50 rounded-lg border border-red-100">
-        <p className="text-sm font-medium text-red-600 mb-2">{error}</p>
-        <pre className="text-[10px] text-slate-500 bg-white p-2 rounded border overflow-x-auto max-w-full text-left">
-          {chart}
-        </pre>
+      <div className="flex flex-col items-center justify-center p-8 text-center bg-white/5 rounded-2xl border border-white/10 min-h-[300px]">
+        <div className="p-3 rounded-full bg-amber-400/10 mb-4">
+          <Layout className="h-8 w-8 text-amber-500" />
+        </div>
+        <p className="text-sm font-bold text-white mb-2">{error}</p>
+        <p className="text-xs text-white/40 max-w-xs mb-4">You can still use the Notes and Flashcards for your exam preparation!</p>
+        {chart && (
+          <pre className="text-[10px] text-white/30 bg-black/30 p-3 rounded-lg border border-white/5 overflow-x-auto max-w-full text-left">
+            {chart}
+          </pre>
+        )}
       </div>
     );
   }
 
-  return <div ref={ref} className="flex justify-center w-full overflow-x-auto" />;
+  return (
+    <div className="flex justify-center w-full overflow-x-auto animate-in fade-in duration-700">
+      <div ref={ref} className="w-full h-full" />
+    </div>
+  );
 };
 import { cn } from './lib/utils';
 import { extractTextFromPDF } from './services/pdf';
@@ -84,6 +99,7 @@ import { Flashcard, StudyContent, Message } from './types';
 import { ThemePickerScreen } from './components/ThemePickerScreen';
 import { THEMES, ThemeId, DEFAULT_THEME } from './themes/themes';
 import { StudySession } from './components/study/StudySession';
+import { ExamPrepMode } from './components/study/ExamPrepMode';
 
 
 // --- Components ---
@@ -141,29 +157,29 @@ import { SplashLoginScreen } from './components/SplashLoginScreen';
 
 export default function App() {
   const [view, setView] = useState<'login' | 'signup' | 'home' | 'results' | 'demo' | 'theme-picker'>('login');
-  const [user, setUser] = useState<{ username: string; phone: string } | null>(null);
+  const [user, setUser] = useState<{ email: string } | null>(null);
   const [theme, setTheme] = useState<ThemeId>('normal');
   const [showThemeSwitcher, setShowThemeSwitcher] = useState(false);
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState<StudyContent | null>(null);
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState('');
-  const [activeTab, setActiveTab] = useState<'notes' | 'flashcards' | 'flowchart' | 'videos'>('notes');
+  const [activeTab, setActiveTab] = useState<'notes' | 'flashcards' | 'flowchart' | 'examprep' | 'videos'>('notes');
   const [homeTab, setHomeTab] = useState<'search' | 'profile'>('search');
   const [flowchartZoom, setFlowchartZoom] = useState(1);
 
   const [masteredCards, setMasteredCards] = useState<Set<string>>(new Set());
 
-  // Auth Handlers
+  // Auth Handlers (Backup if Splash screen bypassed)
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setUser({ username: 'Demo User', phone: '1234567890' });
+    setUser({ email: 'demo@example.com' });
     setView('theme-picker');
   };
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
-    setUser({ username: 'New Student', phone: '0987654321' });
+    setUser({ email: 'newuser@example.com' });
     setView('theme-picker');
   };
 
@@ -359,7 +375,7 @@ export default function App() {
                   <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ background: `rgba(${T.colors.primaryRgb},0.2)`, color: T.colors.tabText }}>
                     <User className="h-4 w-4" />
                   </div>
-                  <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>{user?.username}</span>
+                  <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>{user?.email}</span>
                 </div>
                 <button onClick={() => setView('login')} className="p-2 rounded-lg transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = T.colors.tabText)}
@@ -389,8 +405,8 @@ export default function App() {
                     <User className="h-12 w-12" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-white">{user?.username}</h3>
-                    <p style={{ color: 'rgba(255,255,255,0.4)' }}>{user?.phone}</p>
+                    <h3 className="text-2xl font-bold text-white max-w-[280px] truncate">{user?.email}</h3>
+                    <p style={{ color: 'rgba(255,255,255,0.4)' }}>Premium Learner</p>
                     <div className="mt-2 flex gap-2">
                       <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium" style={{ background: 'rgba(124,58,237,0.15)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.3)' }}>Student</span>
                       <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium" style={{ background: 'rgba(16,185,129,0.12)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.25)' }}>Active Learner</span>
@@ -494,6 +510,7 @@ export default function App() {
                   { id: 'notes', label: 'Notes', icon: FileText },
                   { id: 'flashcards', label: 'Flashcards', icon: BrainCircuit },
                   { id: 'flowchart', label: 'Flowchart', icon: Layout },
+                  { id: 'examprep', label: '1-Day Prep ⚡', icon: Zap },
                   { id: 'videos', label: 'Related Videos', icon: Youtube },
                 ].map((tab) => (
                   <button
@@ -650,6 +667,17 @@ export default function App() {
                   </motion.div>
                 )}
 
+                {activeTab === 'examprep' && (
+                  <motion.div
+                    key="examprep"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="h-full"
+                  >
+                    <ExamPrepMode cards={content.flashcards} theme={THEMES[theme]} />
+                  </motion.div>
+                )}
 
                 {activeTab === 'videos' && (
                   <motion.div

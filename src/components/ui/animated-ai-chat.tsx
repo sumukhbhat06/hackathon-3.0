@@ -4,19 +4,18 @@ import { useEffect, useRef, useCallback, useTransition } from "react";
 import { useState } from "react";
 import { cn } from "../../lib/utils";
 import {
-    ImageIcon,
-    FileUp,
-    Figma,
-    MonitorIcon,
-    CircleUserRound,
-    ArrowUpIcon,
-    Paperclip,
-    PlusIcon,
-    SendIcon,
     XIcon,
     LoaderIcon,
     Sparkles,
     Command,
+    GraduationCap,
+    BrainCircuit,
+    Zap,
+    BookOpen,
+    Presentation,
+    Paperclip,
+    SendIcon,
+    FileUp
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as React from "react"
@@ -157,28 +156,28 @@ export function AnimatedAIChat({ onSubmit, isProcessing }: AnimatedAIChatProps =
 
     const commandSuggestions: CommandSuggestion[] = [
         { 
-            icon: <ImageIcon className="w-4 h-4" />, 
-            label: "Clone UI", 
-            description: "Generate a UI from a screenshot", 
-            prefix: "/clone" 
+            icon: <GraduationCap className="w-4 h-4" />, 
+            label: "Explain Concept", 
+            description: "Deep dive into a specific topic", 
+            prefix: "/explain" 
         },
         { 
-            icon: <Figma className="w-4 h-4" />, 
-            label: "Import Figma", 
-            description: "Import a design from Figma", 
-            prefix: "/figma" 
+            icon: <BrainCircuit className="w-4 h-4" />, 
+            label: "Create Flashcards", 
+            description: "Generate Q&A for active recall", 
+            prefix: "/cards" 
         },
         { 
-            icon: <MonitorIcon className="w-4 h-4" />, 
-            label: "Create Page", 
-            description: "Generate a new web page", 
-            prefix: "/page" 
+            icon: <Zap className="w-4 h-4" />, 
+            label: "Quick Quiz", 
+            description: "Test your knowledge instantly", 
+            prefix: "/quiz" 
         },
         { 
-            icon: <Sparkles className="w-4 h-4" />, 
-            label: "Improve", 
-            description: "Improve existing UI design", 
-            prefix: "/improve" 
+            icon: <BookOpen className="w-4 h-4" />, 
+            label: "Summarize", 
+            description: "Condense long notes into key points", 
+            prefix: "/summary" 
         },
     ];
 
@@ -521,29 +520,24 @@ export function AnimatedAIChat({ onSubmit, isProcessing }: AnimatedAIChatProps =
                         </div>
                     </motion.div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-2">
+                    <div className="flex flex-wrap items-center justify-center gap-3">
                         {commandSuggestions.map((suggestion, index) => (
                             <motion.button
                                 key={suggestion.prefix}
                                 onClick={() => selectCommandSuggestion(index)}
-                                className="flex items-center gap-2 px-3 py-2 bg-white/[0.02] hover:bg-white/[0.05] rounded-lg text-sm text-white/60 hover:text-white/90 transition-all relative group"
+                                className="flex items-center gap-2.5 px-4 py-2.5 bg-white/[0.03] hover:bg-white/[0.08] rounded-xl text-sm text-white/50 hover:text-white transition-all relative group border border-white/[0.03] hover:border-white/[0.1] shadow-lg hover:shadow-violet-500/5 overflow-hidden"
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.1 }}
+                                whileHover={{ scale: 1.02, y: -2 }}
+                                whileTap={{ scale: 0.98 }}
                             >
-                                {suggestion.icon}
-                                <span>{suggestion.label}</span>
+                                <div className="p-1.5 rounded-lg bg-white/5 group-hover:bg-violet-500/20 group-hover:text-violet-300 transition-colors">
+                                    {suggestion.icon}
+                                </div>
+                                <span className="font-medium">{suggestion.label}</span>
                                 <motion.div
-                                    className="absolute inset-0 border border-white/[0.05] rounded-lg"
-                                    initial={false}
-                                    animate={{
-                                        opacity: [0, 1],
-                                        scale: [0.98, 1],
-                                    }}
-                                    transition={{
-                                        duration: 0.3,
-                                        ease: "easeOut",
-                                    }}
+                                    className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-violet-500/50 to-indigo-500/50 scale-x-0 group-hover:scale-x-100 transition-transform origin-left"
                                 />
                             </motion.button>
                         ))}

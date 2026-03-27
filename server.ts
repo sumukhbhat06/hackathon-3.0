@@ -103,7 +103,7 @@ Generate study materials in JSON with this exact structure:
 Requirements:
 - notes: at least 300 words in Markdown with headers and bullets
 - flashcards: 5-10 Q&A pairs, styled according to the system instructions
-- flowchartData: valid Mermaid graph TD syntax only, no special chars outside quotes
+- flowchartData: valid Mermaid graph TD syntax. IMPORTANT: ALL node labels MUST be in double quotes like A["Node Name"] to avoid syntax errors with special characters like brackets or parentheses. Output ONLY the graph definition.
 - relatedVideos: exactly 5 items`
           }
         ],
