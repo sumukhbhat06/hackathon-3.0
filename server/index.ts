@@ -61,34 +61,30 @@ const THEME_STYLES: Record<string, string> = {
 };
 
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+app.use(express.json({ limit: '100mb' }));
 
-  app.use(express.json({ limit: '100mb' }));
+// Study materials — theme-aware
+app.post("/api/ai/study-materials", async (req, res) => {
+  const { content, type, theme = 'normal' } = req.body;
+  const promptStyle = THEME_STYLES[theme] || THEME_STYLES.normal;
 
-  // Study materials — theme-aware
-  app.post("/api/ai/study-materials", async (req, res) => {
-    const { content, type, theme = 'normal' } = req.body;
-    const promptStyle = THEME_STYLES[theme] || THEME_STYLES.normal;
-
-    try {
-      const response = await openai.chat.completions.create({
-        model: "google/gemini-2.0-flash-001",
-        messages: [
-          {
-            // System message carries the style — isolated from JSON instructions
-            role: "system",
-            content: `You are a study material generator that ALWAYS responds with a valid JSON object.
+  try {
+    const response = await openai.chat.completions.create({
+      model: "google/gemini-2.0-flash-001",
+      messages: [
+        {
+          role: "system",
+          content: `You are a study material generator that ALWAYS responds with a valid JSON object.
 Your response must contain exactly these keys: "notes", "flashcards", "flowchartData", "relatedVideos".
 Do NOT wrap the JSON in markdown code fences. Do NOT add any text before or after the JSON object.
 
 CONTENT STYLE TO APPLY TO ALL OUTPUT:
 ${promptStyle}`
-          },
-          {
-            role: "user",
-            content: `Analyze the following ${type === 'pdf' ? 'lecture notes' : 'video transcript/content'}:
+        },
+        {
+          role: "user",
+          content: `Analyze the following ${type === 'pdf' ? 'lecture notes' : 'video transcript/content'}:
 
 ${content}
 
@@ -105,80 +101,79 @@ Requirements:
 - flashcards: 5-10 Q&A pairs, styled according to the system instructions
 - flowchartData: valid Mermaid graph TD syntax. IMPORTANT: ALL node labels MUST be in double quotes like A["Node Name"] to avoid syntax errors with special characters like brackets or parentheses. Output ONLY the graph definition.
 - relatedVideos: exactly 5 items`
-          }
-        ],
-        response_format: { type: "json_object" }
-      });
-
-
-      const raw = response.choices[0].message.content || "{}";
-      let result;
-      try {
-        result = JSON.parse(raw);
-      } catch {
-        const stripped = raw.replace(/^```(json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-        try {
-          result = JSON.parse(stripped);
-        } catch {
-          console.error("JSON parse failed. Raw content:", raw.slice(0, 500));
-          return res.status(502).json({ error: 'AI returned invalid JSON. Try again or use a shorter document.' });
         }
-      }
-      res.json(result);
-    } catch (error: any) {
-      const detail = error?.response?.data || error?.message || String(error);
-      console.error("OpenRouter Error:", detail);
-      res.status(500).json({ error: typeof detail === 'string' ? detail : JSON.stringify(detail) });
-    }
-  });
+      ],
+      response_format: { type: "json_object" }
+    });
 
-  app.post("/api/ai/chat", async (req, res) => {
-    const { notes, history, message } = req.body;
+
+    const raw = response.choices[0].message.content || "{}";
+    let result;
     try {
-      const response = await openai.chat.completions.create({
-        model: "google/gemini-2.0-flash-001",
-        messages: [
-          {
-            role: "system",
-            content: `You are a helpful study assistant. Use the following notes as your primary reference to answer the user's questions. If the answer isn't in the notes, use your general knowledge but mention it's not in the provided material.
-            
-            NOTES:
-            ${notes}`
-          },
-          ...history.map((m: any) => ({
-            role: m.role === 'user' ? 'user' : 'assistant',
-            content: m.text
-          })),
-          { role: "user", content: message }
-        ]
-      });
-
-      res.json({ text: response.choices[0].message.content });
-    } catch (error: any) {
-      const detail = error?.response?.data || error?.message || String(error);
-      console.error("OpenRouter Error:", detail);
-      res.status(500).json({ error: typeof detail === 'string' ? detail : JSON.stringify(detail) });
+      result = JSON.parse(raw);
+    } catch {
+      const stripped = raw.replace(/^```(json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+      try {
+        result = JSON.parse(stripped);
+      } catch {
+        console.error("JSON parse failed. Raw content:", raw.slice(0, 500));
+        return res.status(502).json({ error: 'AI returned invalid JSON. Try again or use a shorter document.' });
+      }
     }
-  });
-
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    res.json(result);
+  } catch (error: any) {
+    const detail = error?.response?.data || error?.message || String(error);
+    console.error("OpenRouter Error:", detail);
+    res.status(500).json({ error: typeof detail === 'string' ? detail : JSON.stringify(detail) });
   }
+});
 
+app.post("/api/ai/chat", async (req, res) => {
+  const { notes, history, message } = req.body;
+  try {
+    const response = await openai.chat.completions.create({
+      model: "google/gemini-2.0-flash-001",
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful study assistant. Use the following notes as your primary reference to answer the user's questions. If the answer isn't in the notes, use your general knowledge but mention it's not in the provided material.
+          
+          NOTES:
+          ${notes}`
+        },
+        ...history.map((m: any) => ({
+          role: m.role === 'user' ? 'user' : 'assistant',
+          content: m.text
+        })),
+        { role: "user", content: message }
+      ]
+    });
+
+    res.json({ text: response.choices[0].message.content });
+  } catch (error: any) {
+    const detail = error?.response?.data || error?.message || String(error);
+    console.error("OpenRouter Error:", detail);
+    res.status(500).json({ error: typeof detail === 'string' ? detail : JSON.stringify(detail) });
+  }
+});
+
+// For local development only, Vite handles serving index.html in Vercel production
+if (process.env.NODE_ENV !== "production") {
+  const { createServer: createViteServer } = await import("vite");
+  const vite = await createViteServer({
+    server: { middlewareMode: true },
+    appType: "spa",
+  });
+  app.use(vite.middlewares);
+}
+
+// In standard production environments (like locally), we listen. 
+// Vercel instead calls this via serverless functions handler.
+if (process.env.VERCEL !== "1") {
+  const PORT = Number(process.env.PORT) || 3000;
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
-startServer();
+export default app;
