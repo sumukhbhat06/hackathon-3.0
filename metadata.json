@@ -1,0 +1,8 @@
+{
+  "name": "Lumina Study AI",
+  "description": "AI-powered study assistant that generates flashcards, notes, and flowcharts from PDFs and YouTube videos.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
